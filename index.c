@@ -24,6 +24,9 @@
 #include <unistd.h>
 #include <dirent.h>
 
+// object_write is implemented in object.c; declare here to avoid circular headers
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+
 // ─── PROVIDED ────────────────────────────────────────────────────────────────
 
 // Find an index entry by path (linear scan).
