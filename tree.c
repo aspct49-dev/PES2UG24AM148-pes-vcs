@@ -161,8 +161,34 @@ static int write_tree_level(IndexEntry *entries, int count, int prefix_len, Obje
             te->name[sizeof(te->name) - 1] = '\0';
             i++;
         } else {
-            // Subdirectory detected — grouping not yet implemented
-            i++;
+            // Group all consecutive entries sharing the same directory prefix
+            size_t dir_len = (size_t)(slash - rel_path);
+            char dir_name[256];
+            strncpy(dir_name, rel_path, dir_len);
+            dir_name[dir_len] = '\0';
+
+            int j = i;
+            while (j < count) {
+                const char *p = entries[j].path + prefix_len;
+                if (strncmp(p, dir_name, dir_len) == 0 && p[dir_len] == '/')
+                    j++;
+                else
+                    break;
+            }
+
+            // Recurse to build the subtree for entries[i..j)
+            ObjectID subtree_id;
+            int new_prefix = prefix_len + (int)dir_len + 1;
+            if (write_tree_level(entries + i, j - i, new_prefix, &subtree_id) != 0)
+                return -1;
+
+            TreeEntry *te = &tree.entries[tree.count++];
+            te->mode = MODE_DIR;
+            te->hash = subtree_id;
+            strncpy(te->name, dir_name, sizeof(te->name) - 1);
+            te->name[sizeof(te->name) - 1] = '\0';
+
+            i = j;
         }
     }
 
