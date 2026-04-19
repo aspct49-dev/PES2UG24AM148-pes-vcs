@@ -217,7 +217,20 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     size_t commit_len;
     if (commit_serialize(&c, &commit_data, &commit_len) != 0) return -1;
 
-    (void)commit_id_out;
+    // Write commit to object store
+    ObjectID commit_id;
+    int rc = object_write(OBJ_COMMIT, commit_data, commit_len, &commit_id);
     free(commit_data);
-    return -1; // object write and HEAD update not yet implemented
+    if (rc != 0) return -1;
+
+    // Atomically advance the current branch pointer to the new commit
+    if (head_update(&commit_id) != 0) return -1;
+
+    if (commit_id_out) *commit_id_out = commit_id;
+
+    char hex[HASH_HEX_SIZE + 1];
+    hash_to_hex(&commit_id, hex);
+    printf("[main %.7s] %s\n", hex, message);
+
+    return 0;
 }
