@@ -212,6 +212,12 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     c.timestamp = (uint64_t)time(NULL);
     snprintf(c.message, sizeof(c.message), "%s", message);
 
+    // Serialise the Commit struct to the text wire format
+    void *commit_data;
+    size_t commit_len;
+    if (commit_serialize(&c, &commit_data, &commit_len) != 0) return -1;
+
     (void)commit_id_out;
-    return -1; // serialization and write not yet implemented
+    free(commit_data);
+    return -1; // object write and HEAD update not yet implemented
 }
