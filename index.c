@@ -140,8 +140,22 @@ int index_load(Index *index) {
     FILE *f = fopen(INDEX_FILE, "r");
     if (!f) return 0; // no index file yet means empty staging area, not an error
 
+    char hex[HASH_HEX_SIZE + 1];
+    while (index->count < MAX_INDEX_ENTRIES) {
+        IndexEntry *e = &index->entries[index->count];
+        unsigned long long mtime_tmp = 0;
+        unsigned int size_tmp = 0;
+        int rc = fscanf(f, "%o %64s %llu %u %511s\n",
+                        &e->mode, hex, &mtime_tmp, &size_tmp, e->path);
+        if (rc == EOF || rc < 5) break;
+        if (hex_to_hash(hex, &e->hash) != 0) { fclose(f); return -1; }
+        e->mtime_sec = (uint64_t)mtime_tmp;
+        e->size      = (uint32_t)size_tmp;
+        index->count++;
+    }
+
     fclose(f);
-    return -1; // line parsing not yet implemented
+    return 0;
 }
 
 // Save the index to .pes/index atomically.
