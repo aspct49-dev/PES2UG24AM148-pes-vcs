@@ -194,8 +194,19 @@ int head_update(const ObjectID *new_commit) {
 //
 // Returns 0 on success, -1 on error.
 int commit_create(const char *message, ObjectID *commit_id_out) {
-    // TODO: Implement commit creation
-    // (See Lab Appendix for logical steps)
+    // Build a tree object from whatever is currently staged in the index
+    ObjectID tree_id;
+    if (tree_from_index(&tree_id) != 0) {
+        fprintf(stderr, "error: nothing staged to commit\n");
+        return -1;
+    }
+
+    // Attempt to read the current HEAD commit as parent; first commit has none
+    Commit c;
+    memset(&c, 0, sizeof(c));
+    c.tree = tree_id;
+    c.has_parent = (head_read(&c.parent) == 0) ? 1 : 0;
+
     (void)message; (void)commit_id_out;
-    return -1;
+    return -1; // Commit struct not yet fully populated
 }
