@@ -133,13 +133,19 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //   - object_write    : save that binary buffer to the store as OBJ_TREE
 //
 // Returns 0 on success, -1 on error.
-// Forward declaration for recursion
+// write_tree_level — recursive helper that builds one level of the tree hierarchy.
+// entries:    slice of IndexEntry array whose paths all share a common prefix
+// count:      number of entries in the slice
+// prefix_len: byte offset into each path where the current directory's name starts
+// id_out:     receives the ObjectID of the tree written to the object store
 static int write_tree_level(IndexEntry *entries, int count, int prefix_len, ObjectID *id_out);
 
 int tree_from_index(ObjectID *id_out) {
     Index index;
     if (index_load(&index) != 0) return -1;
     if (index.count == 0) return -1;
+    // Start at depth 0 with no prefix stripped — write_tree_level recurses
+    // inward for each subdirectory encountered in the sorted path list.
     return write_tree_level(index.entries, index.count, 0, id_out);
 }
 
