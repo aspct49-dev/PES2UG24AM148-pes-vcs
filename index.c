@@ -176,17 +176,21 @@ static int compare_index_entries(const void *a, const void *b) {
 }
 
 int index_save(const Index *index) {
-    // Sort a local copy so the file is always in deterministic order
-    Index sorted = *index;
-    qsort(sorted.entries, sorted.count, sizeof(IndexEntry), compare_index_entries);
+    // Heap-allocate the sorted copy — Index is ~5.6 MB; copying on the stack
+    // causes overflow since index_save is called from index_add which already
+    // holds an Index on its caller's stack frame.
+    IndexEntry *sorted = malloc(index->count * sizeof(IndexEntry));
+    if (!sorted) return -1;
+    memcpy(sorted, index->entries, index->count * sizeof(IndexEntry));
+    qsort(sorted, index->count, sizeof(IndexEntry), compare_index_entries);
 
     const char *tmp_path = INDEX_FILE ".tmp";
     FILE *f = fopen(tmp_path, "w");
-    if (!f) return -1;
+    if (!f) { free(sorted); return -1; }
 
     char hex[HASH_HEX_SIZE + 1];
-    for (int i = 0; i < sorted.count; i++) {
-        const IndexEntry *e = &sorted.entries[i];
+    for (int i = 0; i < index->count; i++) {
+        const IndexEntry *e = &sorted[i];
         hash_to_hex(&e->hash, hex);
         fprintf(f, "%o %s %llu %u %s\n",
                 e->mode, hex,
@@ -198,6 +202,7 @@ int index_save(const Index *index) {
     fflush(f);
     fsync(fileno(f));
     fclose(f);
+    free(sorted);
 
     return rename(tmp_path, INDEX_FILE);
 }
