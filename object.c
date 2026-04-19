@@ -113,9 +113,11 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     memcpy(full_obj, header, header_len);
     memcpy(full_obj + header_len, data, len);
 
+    // Compute SHA-256 of the full object (header + data)
+    compute_hash(full_obj, full_len, id_out);
+
     free(full_obj);
-    (void)id_out;
-    return -1; // hash computation not yet implemented
+    return -1; // disk write not yet implemented
 }
 
 // Read an object from the store.
