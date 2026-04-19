@@ -116,8 +116,21 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     // Compute SHA-256 of the full object (header + data)
     compute_hash(full_obj, full_len, id_out);
 
+    // Deduplication: identical content already stored, nothing to do
+    if (object_exists(id_out)) {
+        free(full_obj);
+        return 0;
+    }
+
+    // Derive shard directory path and create it if missing
+    char hex[HASH_HEX_SIZE + 1];
+    hash_to_hex(id_out, hex);
+    char shard_dir[128];
+    snprintf(shard_dir, sizeof(shard_dir), "%s/%.2s", OBJECTS_DIR, hex);
+    mkdir(shard_dir, 0755);
+
     free(full_obj);
-    return -1; // disk write not yet implemented
+    return -1; // file write not yet implemented
 }
 
 // Read an object from the store.
