@@ -146,6 +146,26 @@ int tree_from_index(ObjectID *id_out) {
 static int write_tree_level(IndexEntry *entries, int count, int prefix_len, ObjectID *id_out) {
     Tree tree;
     tree.count = 0;
-    (void)entries; (void)count; (void)prefix_len; (void)id_out;
-    return -1; // entry population not yet implemented
+
+    int i = 0;
+    while (i < count) {
+        const char *rel_path = entries[i].path + prefix_len;
+        char *slash = strchr(rel_path, '/');
+
+        if (!slash) {
+            // Flat file at this level: add a blob entry directly
+            TreeEntry *te = &tree.entries[tree.count++];
+            te->mode = entries[i].mode;
+            te->hash = entries[i].hash;
+            strncpy(te->name, rel_path, sizeof(te->name) - 1);
+            te->name[sizeof(te->name) - 1] = '\0';
+            i++;
+        } else {
+            // Subdirectory detected — grouping not yet implemented
+            i++;
+        }
+    }
+
+    (void)id_out;
+    return -1; // serialization not yet implemented
 }
