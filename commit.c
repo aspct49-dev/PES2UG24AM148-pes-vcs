@@ -207,6 +207,11 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     c.tree = tree_id;
     c.has_parent = (head_read(&c.parent) == 0) ? 1 : 0;
 
-    (void)message; (void)commit_id_out;
-    return -1; // Commit struct not yet fully populated
+    // Populate author, timestamp, and message fields
+    snprintf(c.author, sizeof(c.author), "%s", pes_author());
+    c.timestamp = (uint64_t)time(NULL);
+    snprintf(c.message, sizeof(c.message), "%s", message);
+
+    (void)commit_id_out;
+    return -1; // serialization and write not yet implemented
 }
